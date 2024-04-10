@@ -58,8 +58,9 @@ describe("PATCH /companies/:code", () => {
   test("Updates a single company", async () => {
     const res = await request(app).patch(`/companies/${testCompany.code}`).send({ code: 'Test', name: 'TestPatch', description: 'TestDescription' });
     expect(res.statusCode).toBe(200);
+    console.log(res.body)
     expect(res.body).toEqual({
-      user: { id: testCompany.id, name: 'Test', type: 'TestPatch', description: 'TestDescription' }
+      company: {code: 'apple', name:'TestPatch', description: 'TestDescription' }
     })
   })
   test("Responds with 404 for invalid id", async () => {
