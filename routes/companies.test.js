@@ -7,13 +7,14 @@ const db = require('../db');
 
 let testCompany;
 beforeEach(async () => {
-  const result = await db.query(`INSERT INTO companies (name, type) VALUES ('apple', 'Apple') RETURNING  id, name, type`);
+  const result = await db.query(`INSERT INTO companies (code, description, name) VALUES ('apple', 'apple', 'Apple') RETURNING code, description, name`);
   testCompany = result.rows[0]
 })
 
 afterEach(async () => {
-  await db.query(`DELETE FROM companies`)
-})
+  await db.query(`DELETE FROM companies`);
+});
+
 
 afterAll(async () => {
   await db.end()
@@ -27,9 +28,9 @@ describe("GET /companies", () => {
   })
 })
 
-describe("GET /companies/:id", () => {
-  test("Gets a single companies", async () => {
-    const res = await request(app).get(`/companies/${testCompany.id}`)
+describe("GET /companies/:code", () => {
+  test("Gets a single company", async () => {
+    const res = await request(app).get(`/companies/${testCompany.code}`)
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ company: testCompany })
   })
@@ -40,21 +41,25 @@ describe("GET /companies/:id", () => {
 })
 
 describe("POST /companies", () => {
-  test("Creates a single user", async () => {
-    const res = await request(app).post('/companies').send({ code: 'Google', name: 'Google' });
+  test("Creates a single company", async () => {
+    const res = await request(app).post('/companies').send({ code: 'Google', name: 'Google', description: 'Test Google'});
     expect(res.statusCode).toBe(201);
     expect(res.body).toEqual({
-      user: { id: expect.any(Number), name: 'Google', type: 'Google' }
+      company: {
+        code: 'Google',
+        description: 'Test Google',
+        name: 'Google'
+      }
     })
   })
 })
 
-describe("PATCH /companies/:id", () => {
+describe("PATCH /companies/:code", () => {
   test("Updates a single company", async () => {
-    const res = await request(app).patch(`/companies/${testCompany.id}`).send({ code: 'Test', name: 'TestPatch' });
+    const res = await request(app).patch(`/companies/${testCompany.code}`).send({ code: 'Test', name: 'TestPatch', description: 'TestDescription' });
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({
-      user: { id: testUser.id, name: 'Test', type: 'TestPatch' }
+      user: { id: testCompany.id, name: 'Test', type: 'TestPatch', description: 'TestDescription' }
     })
   })
   test("Responds with 404 for invalid id", async () => {
@@ -64,7 +69,7 @@ describe("PATCH /companies/:id", () => {
 })
 describe("DELETE /companies/:id", () => {
   test("Deletes a single user", async () => {
-    const res = await request(app).delete(`/companies/${testUser.id}`);
+    const res = await request(app).delete(`/companies/${testCompany.id}`);
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ msg: 'DELETED!' })
   })
