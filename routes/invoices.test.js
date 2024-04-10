@@ -7,11 +7,13 @@ const db = require('../db');
 
 let testInvoice;
 beforeEach(async () => {
+  await db.query(`INSERT INTO companies (code, description, name) VALUES ('apple', 'apple', 'Apple') `);
   const result = await db.query(`INSERT INTO invoices (comp_code, amt) VALUES ('apple', 100) RETURNING id, comp_code, amt`);
-  testCompany = result.rows[0]
+  testInvoice = result.rows[0]
 })
 
 afterEach(async () => {
+  await db.query(`DELETE FROM companies`)
   await db.query(`DELETE FROM invoices`)
 })
 
@@ -23,7 +25,19 @@ describe("GET /invoices", () => {
   test("Get a list with one invoice", async () => {
     const res = await request(app).get('/invoices')
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ invoice: [testInvoice] })
+    expect(res.body).toEqual({
+      companies: [
+        {
+          id: expect.any(Number),
+          comp_code: 'apple',
+          amt: 100,
+          paid: false,
+          add_date: expect.any(String),
+          paid_date: null
+        }
+      ]
+    });
+    
   })
 })
 
@@ -31,7 +45,18 @@ describe("GET /invoices/:id", () => {
   test("Gets a single invoice", async () => {
     const res = await request(app).get(`/invoices/${testInvoice.id}`)
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ invoice: testInvoice })
+    expect(res.body).toEqual({
+      invoice: 
+        {
+          id: expect.any(Number),
+          comp_code: 'apple',
+          amt: 100,
+          paid: false,
+          add_date: expect.any(String),
+          paid_date: null
+        }
+      
+    })
   })
   test("Responds with 404 for invalid id", async () => {
     const res = await request(app).get(`/invoices/0`)
@@ -39,22 +64,22 @@ describe("GET /invoices/:id", () => {
   })
 })
 
-describe("POST /invoice", () => {
+describe("POST /invoices", () => {
   test("Creates a single invoice", async () => {
-    const res = await request(app).post('/invoices').send({ comp_code: 'Test', amt: 999 });
+    const res = await request(app).post('/invoices').send({ comp_code: 'apple', amt: 999 });
     expect(res.statusCode).toBe(201);
     expect(res.body).toEqual({
-      user: { id: expect.any(Number), comp_code: 'Test', amt: 999 }
+      invoice: {comp_code: 'apple', amt: 999, paid_date: expect.any(String), add_date: expect.any(String) }
     })
   })
 })
 
 describe("PATCH /invoices/:id", () => {
   test("Updates a single invoice", async () => {
-    const res = await request(app).patch(`/invoices/${testInvoice.id}`).send({ comp_code: 'Test', amt: 123 });
+    const res = await request(app).patch(`/invoices/${testInvoice.id}`).send({ comp_code: 'apple', amt: 123 });
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({
-      user: { id: testInvoice.id, comp_code: 'Test', amt: 123 }
+      company: { id: testInvoice.id, amt: 123 }
     })
   })
   test("Responds with 404 for invalid id", async () => {
