@@ -66,7 +66,7 @@ describe("GET /invoices/:id", () => {
 
 describe("POST /invoices", () => {
   test("Creates a single invoice", async () => {
-    const res = await request(app).post('/invoices').send({ comp_code: 'apple', amt: 999 });
+    const res = await request(app).post('/invoices').send({ comp_code: 'apple', amt: 999});
     expect(res.statusCode).toBe(201);
     expect(res.body).toEqual({
       invoice: {comp_code: 'apple', amt: 999, paid_date: expect.any(String), add_date: expect.any(String) }
@@ -74,12 +74,12 @@ describe("POST /invoices", () => {
   })
 })
 
-describe("PATCH /invoices/:id", () => {
+describe("PUT /invoices/:id", () => {
   test("Updates a single invoice", async () => {
-    const res = await request(app).patch(`/invoices/${testInvoice.id}`).send({ comp_code: 'apple', amt: 123 });
+    const res = await request(app).put(`/invoices/${testInvoice.id}`).send({ comp_code: 'apple', amt: 123, paid: true });
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({
-      company: { id: testInvoice.id, amt: 123 }
+      invoice: { id: testInvoice.id, amt: 123, add_date: expect.any(String), comp_code:"apple", paid:true, paid_date:expect.any(String)}
     })
   })
   test("Responds with 404 for invalid id", async () => {
