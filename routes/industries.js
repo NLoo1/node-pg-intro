@@ -4,41 +4,43 @@ const ExpressError = require("../expressError")
 const router = express.Router();
 const db = require("../db");
 
+// Get all industries and industries_companies
 router.get('/', async (req, res, next) => {
     try{
-        const results = await db.query(`SELECT * FROM companies`);
-        return res.json({ companies: results.rows })
+        const results = await db.query(`SELECT * FROM industries`);
+        const companies = await db.query(`SELECT * FROM industries_companies`);
+        return res.json({ industries: results.rows, companies: companies.rows })
     } catch(e){
         next(e) 
     }
 })
 
-
+// Given industry code, list all companies 
 router.get('/:code', async (req, res, next) => {
     try {
       const { code } = req.params;
-      const results = await db.query('SELECT * FROM companies WHERE code = $1', [code])
+      const results = await db.query('SELECT company_code FROM industries_companies WHERE industry_code = $1', [code])
       if (results.rows.length === 0) {
-        throw new ExpressError(`Can't find company with code of ${code}`, 404)
+        throw new ExpressError(`Can't find industry with code of ${code}`, 404)
       }
-      return res.send({ company: results.rows[0] })
+      return res.send({ industry: code, companies: results.rows})
     } catch (e) {
       return next(e)
     }
   })
 
+  // Add industry
   router.post("/", async function (req, res, next) {
     try {
-      let {name, description} = req.body;
-      let code = slugify(name, {lower: true});
+      let {code, industry} = req.body;
   
       const result = await db.query(
-            `INSERT INTO companies (code, name, description) 
-             VALUES ($1, $2, $3) 
-             RETURNING code, name, description`,
-          [code, name, description]);
+            `INSERT INTO industries (code, industry) 
+             VALUES ($1, $2) 
+             RETURNING code, industry`,
+          [code, industry]);
   
-      return res.status(201).json({"company": result.rows[0]});
+      return res.status(201).json({"industry": result.rows[0]});
     }
   
     catch (err) {
@@ -46,13 +48,14 @@ router.get('/:code', async (req, res, next) => {
     }
   });
   
-  router.patch('/:code', async (req, res, next) => {
+  // Put industry
+  router.put('/:code', async (req, res, next) => {
     try {
       const { code } = req.params;
-      const { name, description } = req.body;
-      const results = await db.query('UPDATE companies SET name=$1, description=$2 WHERE code=$3 RETURNING code, name, description', [name, description, code])
+      const { new_code, industry } = req.body;
+      const results = await db.query('UPDATE industries SET industry=$1, code=$3 WHERE code=$2 RETURNING code, industry', [industry, code, new_code])
       if (results.rows.length === 0) {
-        throw new ExpressError(`Can't update company with code of ${code}`, 404)
+        throw new ExpressError(`Can't update industry with code of ${code}`, 404)
       }
       return res.send({ company: results.rows[0] })
     } catch (e) {
@@ -62,12 +65,45 @@ router.get('/:code', async (req, res, next) => {
   
   router.delete('/:code', async (req, res, next) => {
     try {
-      const results = db.query('DELETE FROM companies WHERE code = $1', [req.params.code])
+      const industries_companies = db.query('DELETE FROM industries_companies WHERE industry_code = $1', [req.params.code])
+      const results = db.query('DELETE FROM industries WHERE code = $1', [req.params.code])
       return res.send({ msg: "DELETED!" })
     } catch (e) {
       return next(e)
     }
   })
   
+  // Associate industry with company
+  router.post('/:industry_code/:company_code', async (req, res, next) => {
+    try {
+      const { industry_code, company_code } = req.params;
+
+      const result = await db.query(
+        `INSERT INTO industries_companies (industry_code, company_code) 
+         VALUES ($1, $2) 
+         RETURNING industry_code, company_code`,
+      [industry_code, company_code]);
+
+      return res.status(201).json({"industry_company": result.rows[0]});
+    } catch (e) {
+      return next(e)
+    }
+  })
+
+  // Delete association
+  router.delete('/:industry_code/:company_code', async (req, res, next) => {
+    try {
+      const { industry_code, company_code } = req.params;
+
+      const result = await db.query(
+        `DELETE FROM industries_companies 
+        WHERE industry_code=$1, company_code=$2`,
+      [industry_code, company_code]);
+
+      return res.send({ msg: "DELETED!" })
+    } catch (e) {
+      return next(e)
+    }
+  })
 
 module.exports = router;

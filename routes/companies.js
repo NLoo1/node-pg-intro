@@ -18,10 +18,15 @@ router.get('/:code', async (req, res, next) => {
     try {
       const { code } = req.params;
       const results = await db.query('SELECT * FROM companies WHERE code = $1', [code])
+      // TODO: Get associated industries  
+      const industries = await db.query('SELECT industry_code FROM industries_companies WHERE company_code = $1', [code])
       if (results.rows.length === 0) {
         throw new ExpressError(`Can't find company with code of ${code}`, 404)
       }
-      return res.send({ company: results.rows[0] })
+      return res.send({ 
+        company: results.rows[0],
+        industries: industries.rows[0]
+       })
     } catch (e) {
       return next(e)
     }
@@ -62,6 +67,7 @@ router.get('/:code', async (req, res, next) => {
   
   router.delete('/:code', async (req, res, next) => {
     try {
+      const invoices = db.query('DELETE FROM invoices WHERE comp_Code =$1', [req.params.code])
       const results = db.query('DELETE FROM companies WHERE code = $1', [req.params.code])
       return res.send({ msg: "DELETED!" })
     } catch (e) {

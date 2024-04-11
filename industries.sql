@@ -1,4 +1,4 @@
-\c biztime
+\c biztime_test
 
 DROP TABLE IF EXISTS industries_companies;
 DROP TABLE IF EXISTS industries;

@@ -7,11 +7,13 @@ const db = require('../db');
 
 let testCompany;
 beforeEach(async () => {
-  const result = await db.query(`INSERT INTO companies (code, description, name) VALUES ('apple', 'apple', 'Apple') RETURNING code, description, name`);
+  const result = await db.query(`INSERT INTO companies (code, description, name) VALUES ('pear', 'pear', 'Pear') RETURNING code, description, name`);
+  await db.query(`INSERT INTO industries_companies (industry_code, company_code) VALUES ('TECH', 'pear') RETURNING industry_code, company_code`);
   testCompany = result.rows[0]
 })
 
 afterEach(async () => {
+  await db.query(`DELETE FROM industries_companies`);
   await db.query(`DELETE FROM companies`);
 });
 
@@ -30,9 +32,10 @@ describe("GET /companies", () => {
 
 describe("GET /companies/:code", () => {
   test("Gets a single company", async () => {
+    console.log(testCompany.code)
     const res = await request(app).get(`/companies/${testCompany.code}`)
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ company: testCompany })
+    expect(res.body).toEqual({ company: testCompany, industries: {industry_code: "TECH"}})
   })
   test("Responds with 404 for invalid id", async () => {
     const res = await request(app).get(`/companies/0`)
@@ -54,13 +57,13 @@ describe("POST /companies", () => {
   })
 })
 
-describe("PATCH /companies/:code", () => {
+describe("PUT /companies/:code", () => {
   test("Updates a single company", async () => {
     const res = await request(app).patch(`/companies/${testCompany.code}`).send({ code: 'Test', name: 'TestPatch', description: 'TestDescription' });
     expect(res.statusCode).toBe(200);
     console.log(res.body)
     expect(res.body).toEqual({
-      company: {code: 'apple', name:'TestPatch', description: 'TestDescription' }
+      company: {code: 'pear', name:'TestPatch', description: 'TestDescription' }
     })
   })
   test("Responds with 404 for invalid id", async () => {
@@ -69,7 +72,7 @@ describe("PATCH /companies/:code", () => {
   })
 })
 describe("DELETE /companies/:id", () => {
-  test("Deletes a single user", async () => {
+  test("Deletes a single company", async () => {
     const res = await request(app).delete(`/companies/${testCompany.id}`);
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual({ msg: 'DELETED!' })
