@@ -42,11 +42,11 @@ describe("GET /companies/:code", () => {
 
 describe("POST /companies", () => {
   test("Creates a single company", async () => {
-    const res = await request(app).post('/companies').send({ code: 'Google', name: 'Google', description: 'Test Google'});
+    const res = await request(app).post('/companies').send({name: 'Google', description: 'Test Google'});
     expect(res.statusCode).toBe(201);
     expect(res.body).toEqual({
       company: {
-        code: 'Google',
+        code: 'google',
         description: 'Test Google',
         name: 'Google'
       }
